@@ -1,0 +1,12 @@
+{
+    "00000001": {
+        "prompt": "Red or Blue?",
+        "option1": "Red",
+        "option2": "Blue"
+    },
+    "00000002": {
+        "prompt": "Green or Purple?",
+        "option1": "Green",
+        "option2": "Purple"
+    }
+}

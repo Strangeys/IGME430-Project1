@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Our simple HTTP server</title>
+    <link rel="stylesheet" type="text/css" href="/style.css">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
+    <script>
+        let prompts = [];
+        let promptText;
+        let option1Text;
+        let option2Text;
+        loadJsonXHR();
+
+        function loadJsonXHR(){
+            const url = "client/polls.json";
+            const xhr = new XMLHttpRequest();
+            xhr.onload = (e) => {
+                let json = JSON.parse(e.target.responseText);
+                const keys = Object.keys(json);
+                
+                let i = 0;
+                for(let k of keys){
+                    prompts[i] = json[k];
+                    i++;
+                }
+                promptText = document.querySelector('#prompt_text');
+                option1Text = document.querySelector('#option1_text');
+                option2Text = document.querySelector('#option2_text');
+                promptText.innerHTML = prompts[0].prompt;
+                option1Text.innerHTML = prompts[0].option1;
+                option2Text.innerHTML = prompts[0].option2;
+            }
+            xhr.onerror = e => console.log(`In onerror - HTTP Status Code = ${e.target.status}`);
+            xhr.open("GET", url);
+            xhr.send();
+        }
+    </script>
+    <script type="text/babel">
+
+        const parseJSON = (xhr, content) => {
+            const obj = JSON.parse(xhr.response);
+
+            if (obj.message) {
+                const p = document.createElement('p');
+                p.textContent = `Message: ${obj.message}`;
+                content.appendChild(p);
+            }
+
+            if (obj.users) {
+                const userList = document.createElement('p');
+                const users = JSON.stringify(obj.users);
+                userList.textContent = users;
+                content.appendChild(userList);
+            }
+
+            return obj;
+        };
+
+        const handleResponse = (xhr, parseResponse) => {
+            const content = document.querySelector('#content');
+
+            switch (xhr.status) {
+                case 200: // success
+                content.innerHTML = `<b>Success</b>`;
+                break;
+                case 201: // created
+                content.innerHTML = `<b>User Created</b>`;
+                break;
+                case 204: // already exists
+                content.innerHTML = `<b>Updated (No Content)</b>`;
+                break;
+                case 400: // bad request
+                content.innerHTML = `<b>Bad Request</b>`;
+                break;
+                case 404: // not found
+                content.innerHTML = `<b>Page Not Found</b>`;
+                break;
+                default:
+                content.innerHTML = `Error code N/A`;
+            }
+
+            if (parseResponse) {
+                const obj = parseJSON(xhr, content)
+                console.dir(obj);
+            }
+        };
+
+        const getRequest = (e, userForm) => {
+            const url = userForm.querySelector('#urlField').value;
+            const method = userForm.querySelector('#methodSelect').value;
+
+            const xhr = new XMLHttpRequest();
+            xhr.open(method, url);
+            xhr.setRequestHeader('Accept', 'application.json');
+
+            if (method == 'get') {
+                xhr.onload = () => handleResponse(xhr, true);
+            } else {
+                xhr.onload = () => handleResponse(xhr, false);
+            }
+
+            xhr.send();
+
+            e.preventDefault(e);
+            return false;
+        }
+
+        const sendPost = (e, nameForm) => {
+            const nameAction = nameForm.getAttribute('action');
+            const nameMethod = nameForm.getAttribute('method');
+
+            const nameField = nameForm.querySelector('#nameField');
+            const ageField = nameForm.querySelector('#ageField');
+
+            const xhr = new XMLHttpRequest();
+            xhr.open(nameMethod, nameAction);
+            xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+            xhr.setRequestHeader('Accept', 'application/json');
+            xhr.onload = () => handleResponse(xhr, true);
+
+            const formData = `name=${nameField.value}&age=${ageField.value}`;
+            xhr.send(formData);
+
+            e.preventDefault();
+            return false;
+        };
+
+        const init = () => {
+            const nameForm = document.querySelector('#nameForm');
+            const userForm = document.querySelector('#userForm');
+
+            const addUser = (e) => sendPost(e, nameForm);
+            const getUsers = (e) => getRequest(e, userForm);
+
+            nameForm.addEventListener('submit', addUser);
+            userForm.addEventListener('submit', getUsers);
+        }
+        window.onload = init;
+    </script>
+</head>
+<body>
+    <section id="polls">
+        <h1>Poll-dle</h1>
+        <h2 id="prompt_text">POLL PROMPT GOES HERE</h2>
+        <h3 id="option1_text">Option 1 TEXT</h3>
+        <h3 id="option2_text">Option 2 TEXT</h3>
+        <button id="option1_button" type="button">BUTTON 1</button>
+        <button id="option2_button" type="button">BUTTON 2</button>
+    </section>
+    
+
+    <section id="top">
+        <h3>Create prompts</h3>
+        <form id="promptForm" action="/addUser" method="post">
+            <label for="prompt">Prompt: </label>
+            <input id="promptField" type="text" name="prompt"/></br>
+            <label for="option1">Option 1: </label>
+            <input id="option1Field" type="text" name="option1"/></br>
+            <label for="option2">Option 2: </label>
+            <input id="option2Field" type="text" name="option2"/>
+        </form>
+        <form id="sendForm" action="/getUsers" method="get">
+    </section>
+    <section id="content">
+    </section>
+</body>
+</html>
